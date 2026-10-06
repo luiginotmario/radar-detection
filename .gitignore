@@ -1,0 +1,5 @@
+.DS_Store
+/target
+/web/node_modules
+/web/dist
+.claude/

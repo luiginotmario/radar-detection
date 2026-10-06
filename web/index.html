@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#030608" />
+    <title>blip</title>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <div class="glass" aria-hidden="true"></div>
+    <div id="tags" aria-hidden="true"></div>
+    <main id="hud">
+      <header class="top">
+        <div class="brand">
+          <span class="logo">blip</span>
+          <span class="status" data-state="off"><i></i><b>connecting</b></span>
+        </div>
+        <div class="count">
+          <span class="n">0</span>
+          <span class="label">people</span>
+        </div>
+      </header>
+      <footer class="bottom">
+        <ul class="sensors"></ul>
+        <button class="view" type="button" aria-label="switch view">2d</button>
+      </footer>
+    </main>
+    <div class="signal" hidden>
+      <b>no signal</b>
+      <span>start blip with <code>cargo run</code></span>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
