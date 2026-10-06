@@ -99,7 +99,8 @@ function trailMaterial() {
       uniform float uAlpha;
       varying float vAge;
       void main() {
-        gl_FragColor = vec4(uColor, pow(vAge, 1.6) * 0.7 * uAlpha);
+        // age is interpolated, so it can dip a hair below 0 at the tail; pow() of that is NaN
+        gl_FragColor = vec4(uColor, pow(clamp(vAge, 0.0, 1.0), 1.6) * 0.7 * uAlpha);
         ${fragmentEnd}
       }`,
   });

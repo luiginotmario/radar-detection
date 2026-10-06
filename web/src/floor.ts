@@ -76,7 +76,8 @@ export class Cone {
         varying vec3 vLocal;
         void main() {
           float r = length(vLocal.xz);
-          float angle = abs(atan(vLocal.x, -vLocal.z));
+          // atan(0, 0) is undefined, right at the sensor
+          float angle = r < 1e-4 ? 0.0 : abs(atan(vLocal.x, -vLocal.z));
           float fill = 0.01 + 0.018 * smoothstep(0.0, uRange, r);
           float edge = smoothstep(uHalf - 0.05, uHalf, angle) * 0.12;
           float behind = uPulse - r;
