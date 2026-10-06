@@ -45,7 +45,8 @@ function hologram() {
       varying vec3 vView;
       varying float vHeight;
       void main() {
-        float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 2.0);
+        float facing = clamp(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 0.0, 1.0);
+        float rim = facing * facing;
         float scan = 0.8 + 0.2 * sin(vHeight * 42.0 - uTime * 5.0);
         float alpha = (rim * 0.85 + 0.06) * scan * uAlpha * (1.0 + uFlare * 1.2);
         gl_FragColor = vec4(uColor * (1.0 + uFlare), alpha);
@@ -104,7 +105,7 @@ function trailMaterial() {
   });
 }
 
-class Blip {
+class Marker {
   readonly root = new THREE.Group();
   readonly trail: THREE.Line;
   readonly position: THREE.Vector3;
@@ -218,41 +219,41 @@ class Blip {
   }
 }
 
-/** everyone on the map, kept in sync with blip's feed. */
+/** everyone on the map, kept in sync with the radar's feed. */
 export class People {
   readonly group = new THREE.Group();
-  private readonly blips = new Map<number, Blip>();
+  private readonly markers = new Map<number, Marker>();
 
   sync(people: Person[]) {
     const seen = new Set<number>();
     for (const person of people) {
       seen.add(person.id);
-      const existing = this.blips.get(person.id);
+      const existing = this.markers.get(person.id);
       if (existing) {
         existing.gone = false;
         existing.linger = 1;
         existing.update(person);
         continue;
       }
-      const blip = new Blip(person);
-      this.blips.set(person.id, blip);
-      this.group.add(blip.root, blip.trail);
+      const marker = new Marker(person);
+      this.markers.set(person.id, marker);
+      this.group.add(marker.root, marker.trail);
     }
-    for (const [id, blip] of this.blips) if (!seen.has(id)) blip.gone = true;
+    for (const [id, marker] of this.markers) if (!seen.has(id)) marker.gone = true;
   }
 
   tick(dt: number, time: number, flareAt: (spot: THREE.Vector3) => number) {
-    for (const [id, blip] of this.blips) {
-      blip.tick(dt, time, flareAt(blip.position));
-      if (blip.gone && blip.linger <= 0) {
-        this.group.remove(blip.root, blip.trail);
-        blip.dispose();
-        this.blips.delete(id);
+    for (const [id, marker] of this.markers) {
+      marker.tick(dt, time, flareAt(marker.position));
+      if (marker.gone && marker.linger <= 0) {
+        this.group.remove(marker.root, marker.trail);
+        marker.dispose();
+        this.markers.delete(id);
       }
     }
   }
 
   get all() {
-    return [...this.blips.values()];
+    return [...this.markers.values()];
   }
 }

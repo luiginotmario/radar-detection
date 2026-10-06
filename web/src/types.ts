@@ -1,4 +1,4 @@
-// what blip sends ten times a second. distances in meters, map x to the right and y
+// what the radar sends ten times a second. distances in meters, map x to the right and y
 // straight ahead of the first sensor.
 
 export type Presence = { moving: number | null; still: number | null };

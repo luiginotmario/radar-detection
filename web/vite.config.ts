@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 // while working on the screen, `pnpm dev` serves it with instant reload and forwards
-// the live feed from blip (cargo run) running on port 7070.
+// the live feed from the radar (cargo run) running on port 7070.
 export default defineConfig({
   server: {
     host: true,

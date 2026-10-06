@@ -20,7 +20,6 @@ export class Radar {
   private readonly camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
   private readonly controls: OrbitControls;
   private readonly composer: EffectComposer | null;
-  private readonly bloom: UnrealBloomPass | null;
   private readonly timer = new THREE.Timer();
   private readonly people = new People();
   private readonly floor = new THREE.Group();
@@ -37,7 +36,9 @@ export class Radar {
     private readonly options: Options,
   ) {
     this.renderer = new THREE.WebGLRenderer({ antialias: options.lowFx, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    // the glow is drawn several times per frame, so full retina resolution makes it
+    // crawl on big screens. 1.5x still looks sharp.
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     host.append(this.renderer.domElement);
 
     this.scene.background = new THREE.Color(colors.background);
@@ -51,13 +52,11 @@ export class Radar {
 
     if (options.lowFx) {
       this.composer = null;
-      this.bloom = null;
     } else {
       const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
       this.composer = new EffectComposer(this.renderer, target);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.5, 0.12);
-      this.composer.addPass(this.bloom);
+      this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.5, 0.12));
       this.composer.addPass(new OutputPass());
     }
 
@@ -190,13 +189,14 @@ export class Radar {
 
   private resize() {
     const { innerWidth: w, innerHeight: h } = window;
+    // a hidden or collapsed window reports 0, and zero-sized buffers break rendering
+    if (!w || !h) return;
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
     // tall screens get a wider lens so the fan still fits
     this.camera.fov = w < h ? 50 : 40;
     this.camera.updateProjectionMatrix();
     this.composer?.setSize(w, h);
-    this.bloom?.resolution.set(w / 2, h / 2);
     if (this.map) this.fly(true);
   }
 
@@ -235,18 +235,18 @@ export class Radar {
     };
     const origin = this.cones[0]?.sensor ?? { x: 0, y: 0 };
 
-    for (const blip of this.people.all) {
-      const at = project(blip.position.clone().setY(this.view === 'top' ? 0 : 1.95));
+    for (const marker of this.people.all) {
+      const at = project(marker.position.clone().setY(this.view === 'top' ? 0 : 1.95));
       if (!at.visible) continue;
-      const { id, x, y, speed, state } = blip.person;
+      const { id, x, y, speed, state } = marker.person;
       const distance = Math.hypot(x - origin.x, y - origin.y);
-      const detail = blip.gone ? 'last seen' : state === 'still' ? 'still' : `${speed.toFixed(1)} m/s`;
+      const detail = marker.gone ? 'last seen' : state === 'still' ? 'still' : `${speed.toFixed(1)} m/s`;
       tags.push({
         key: `p${id}`,
         kind: 'person',
         ...at,
-        color: `#${blip.color.getHexString()}`,
-        opacity: blip.appear * blip.linger,
+        color: `#${marker.color.getHexString()}`,
+        opacity: marker.appear * marker.linger,
         html: `<b>${String(id).padStart(2, '0')}</b><span>${distance.toFixed(1)} m</span><span>${detail}</span>`,
       });
     }

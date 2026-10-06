@@ -1,6 +1,6 @@
-# hi, this is blip
+# hi, this is radar-detection
 
-a little radar that shows where people are, even through a wall. a tiny radar board sends out radio waves, people bounce them back (we're mostly water), and blip turns the echoes into glowing people on a 3d map.
+a little radar that shows where people are, even through a wall. a tiny radar board sends out radio waves, people bounce them back (we're mostly water), and radar-detection turns the echoes into glowing people on a 3d map.
 
 - free and open source (MIT)
 - 100% local. it runs on your own device, no account, no cloud.
@@ -14,13 +14,13 @@ the radar sends out a chirp, a signal that sweeps in frequency. how long the ech
 two sensors work together:
 
 - **ld2450** tracks up to 3 people: where they are and how fast they're moving
-- **ld2410c** can't say where, only how far, but it keeps seeing people who stand completely still. when the ld2450 loses someone who stopped moving, blip keeps them on the map in amber.
+- **ld2410c** can't say where, only how far, but it keeps seeing people who stand completely still. when the ld2450 loses someone who stopped moving, it keeps them on the map in amber.
 
 ## what you need
 
 | part | what it's for |
 |---|---|
-| raspberry pi 5 (+ power supply, sd card, fan) | runs blip and the screen |
+| raspberry pi 5 (+ power supply, sd card, fan) | runs the radar and the screen |
 | raspberry pi touch display 2 (7") | the radar screen |
 | hlk-ld2450 | tracks where people are |
 | hlk-ld2410c | sees people standing still |
@@ -41,7 +41,7 @@ wiring is the same for both sensors. tx and rx cross over:
 ## try it
 
 - install [rust](https://rustup.rs), [node 22](https://nodejs.org) and [pnpm](https://pnpm.io)
-- build the screen once, then run blip:
+- build the screen once, then run it:
 
 ```
 cd web && pnpm install && pnpm build && cd ..
@@ -85,7 +85,7 @@ src/server.rs    rust   serves the screen and streams the map to it, ten times a
 web/             ts     the radar screen, drawn with three.js
 ```
 
-the screen gets baked into the rust binary, so on the pi blip is a single file.
+the screen gets baked into the rust binary, so on the pi it's a single file.
 
 ## if you wanna make an addition + pr, or just wanna remix it for yourself, go for it
 

@@ -19,7 +19,7 @@ struct Screen;
 pub async fn serve(addr: SocketAddr, map: watch::Receiver<String>) -> Result<()> {
     let app = Router::new().route("/ws", get(socket)).fallback(get(asset)).with_state(map);
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    eprintln!("blip is up → http://{addr}");
+    eprintln!("radar-detection is up → http://{addr}");
     axum::serve(listener, app).await?;
     Ok(())
 }

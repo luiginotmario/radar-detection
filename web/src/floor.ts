@@ -80,9 +80,11 @@ export class Cone {
           float fill = 0.01 + 0.018 * smoothstep(0.0, uRange, r);
           float edge = smoothstep(uHalf - 0.05, uHalf, angle) * 0.12;
           float behind = uPulse - r;
-          float front = exp(-pow(behind / 0.05, 2.0));
+          // squares are written out: pow() of a negative number is NaN on many GPUs,
+          // and NaN pixels turn black and get smeared across the screen by the glow
+          float front = exp(-(behind * behind) / 0.0025);
           float wake = behind > 0.0 ? exp(-behind / 0.8) * 0.3 : 0.0;
-          float pulse = uPulse < 0.0 ? 0.0 : (front + wake) * pow(1.0 - uPulse / uRange, 0.6);
+          float pulse = uPulse < 0.0 ? 0.0 : (front + wake) * pow(max(1.0 - uPulse / uRange, 0.0), 0.6);
           gl_FragColor = vec4(uColor, fill + edge + pulse * 0.55);
           ${fragmentEnd}
         }`,

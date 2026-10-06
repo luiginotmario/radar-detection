@@ -1,5 +1,5 @@
 [package]
-name = "blip"
+name = "radar-detection"
 version = "0.1.0"
 edition = "2024"
 description = "a little radar that shows where people are, even behind a wall"

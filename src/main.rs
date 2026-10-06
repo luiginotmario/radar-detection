@@ -15,7 +15,7 @@ use tracker::{Pose, SensorInfo};
 
 /// a little radar that shows where people are, even behind a wall.
 ///
-/// with no sensors given, blip makes up people walking around so you can try the screen.
+/// with no sensors given, it makes up people walking around so you can try the screen.
 #[derive(Parser)]
 #[command(version, about)]
 struct Cli {
@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
     let (tx, rx) = mpsc::channel(64);
     let simulated = cli.ld2450.is_empty() && cli.ld2410.is_empty();
     let sensors = if simulated {
-        eprintln!("no sensors given, so making up people (see `blip --help` to use real ones)");
+        eprintln!("no sensors given, so making up people (see `radar-detection --help` to use real ones)");
         sim::start(tx)
     } else {
         let mut sensors = Vec::new();

@@ -1,6 +1,6 @@
 import type { RadarMap } from './types';
 
-/** listens to blip's live map, reconnecting whenever it drops. */
+/** listens to the radar's live map, reconnecting whenever it drops. */
 export function connect(onMap: (map: RadarMap) => void, onLink: (up: boolean) => void) {
   let attempt = 0;
   const open = () => {
