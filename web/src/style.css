@@ -30,6 +30,11 @@ body {
   user-select: none;
 }
 
+.kiosk,
+.kiosk * {
+  cursor: none !important;
+}
+
 #stage,
 #stage canvas {
   position: fixed;

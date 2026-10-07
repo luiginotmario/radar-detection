@@ -41,14 +41,24 @@ export class Hud {
   }
 
   update(map: RadarMap) {
-    this.status.dataset.state = map.mode;
-    this.status.querySelector('b')!.textContent = map.mode === 'sim' ? 'simulated' : 'live';
+    const anyOnline = map.sensors.some((s) => s.online);
+    this.status.dataset.state = map.mode === 'live' && !anyOnline ? 'off' : map.mode;
+    this.status.querySelector('b')!.textContent =
+      map.mode === 'sim'
+        ? 'simulated'
+        : !map.sensors.length
+          ? 'looking for sensors'
+          : anyOnline
+            ? 'live'
+            : 'sensors offline';
 
     const n = map.people.length;
     this.count.textContent = String(n);
     this.countLabel.textContent = n === 1 ? 'person' : 'people';
 
-    const html = map.sensors.map((s) => sensorLine(s, map)).join('');
+    const html = map.sensors.length
+      ? map.sensors.map((s) => sensorLine(s, map)).join('')
+      : '<li data-state="off"><i></i>no sensors yet<span>plug them in</span></li>';
     if (html !== this.sensorsHtml) this.sensors.innerHTML = this.sensorsHtml = html;
   }
 

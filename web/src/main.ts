@@ -6,7 +6,10 @@ import { Radar } from './radar';
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // `?fx=low` skips the glow, for slower screens
-const lowFx = new URLSearchParams(location.search).get('fx') === 'low';
+const params = new URLSearchParams(location.search);
+const lowFx = params.get('fx') === 'low';
+// `?kiosk` is how the pi opens it: a touchscreen, so no mouse pointer
+if (params.has('kiosk')) document.body.classList.add('kiosk');
 
 const hud = new Hud();
 const radar = new Radar(document.querySelector('#stage')!, hud, { reduceMotion, lowFx });

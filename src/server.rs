@@ -29,9 +29,11 @@ async fn socket(upgrade: WebSocketUpgrade, State(map): State<watch::Receiver<Str
 }
 
 async fn stream(mut ws: WebSocket, mut map: watch::Receiver<String>) {
-    while map.changed().await.is_ok() {
+    // send what we have right away (while it's still looking for sensors nothing
+    // changes), then every update after that
+    loop {
         let json = map.borrow_and_update().clone();
-        if ws.send(Message::Text(json.into())).await.is_err() {
+        if ws.send(Message::Text(json.into())).await.is_err() || map.changed().await.is_err() {
             return;
         }
     }

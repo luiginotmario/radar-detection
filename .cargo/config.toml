@@ -1,0 +1,4 @@
+# the raspberry pi build is a fully static binary linked by rust's own linker, so it
+# builds on a mac without a cross compiler and runs on any 64-bit raspberry pi os
+[target.aarch64-unknown-linux-musl]
+linker = "rust-lld"

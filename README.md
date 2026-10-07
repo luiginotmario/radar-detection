@@ -41,30 +41,25 @@ wiring is the same for both sensors. tx and rx cross over:
 ## try it
 
 - install [rust](https://rustup.rs), [node 22](https://nodejs.org) and [pnpm](https://pnpm.io)
-- build the screen once, then run it:
+- build the screen once, then run it with made-up people walking around:
 
 ```
 cd web && pnpm install && pnpm build && cd ..
-cargo run
+cargo run -- --sim
 ```
 
-- open http://localhost:7070 — done. with no sensors plugged in, a few made-up people walk around so you can see how it works.
+- open http://localhost:7070 — done.
 
-with real sensors:
+with real sensors, plug them in (any usb port, any order) and leave off `--sim`. it listens to each port for a moment and works out which sensor is which by itself. `cargo run -- ports` shows what it found.
 
-```
-cargo run -- ports
-cargo run -- --ld2450 /dev/cu.usbserial-0001 --ld2410 /dev/cu.usbserial-0002
-```
-
-`ports` lists what's plugged in. more sensors? repeat the flags and say where each one sits: `--ld2450 /dev/cu.usbserial-0003@4,0,-90` is 4 m to the right, facing left (meters, then degrees clockwise).
+more than one tracker? say where each one sits: `--ld2450 /dev/ttyUSB2@4,0,-90` is 4 m to the right, facing left (meters, then degrees clockwise).
 
 on the screen: tap **2d / 3d** to switch views, drag to look around, pinch or scroll to zoom.
 
 ## working on the screen
 
 ```
-cargo run
+cargo run -- --sim
 cd web && pnpm dev
 ```
 
@@ -72,17 +67,38 @@ run those in two terminals and open http://localhost:5173. changes show up insta
 
 ## on the raspberry pi
 
-coming once the hardware lands: building for the pi and opening the radar full screen when it boots.
+the pi runs the radar and shows it full screen on the touch display as soon as it turns on.
+
+1. put the sd card in, connect the display, plug the sensors into any usb ports, and turn it on
+2. go through the welcome screens (wifi, a user name and password)
+3. turn on ssh: menu → preferences → control centre → interfaces → ssh
+4. on your mac, from this folder (use the user name you picked, and the pi's name — `raspberrypi` unless you changed it):
+
+```
+./scripts/deploy.sh you@raspberrypi.local
+```
+
+5. reboot the pi — done. the radar opens full screen and finds the sensors by itself.
+
+to update it later, run `deploy.sh` again. the screen on the pi reloads on its own.
+
+- **watch it from your phone too:** `./scripts/deploy.sh you@raspberrypi.local --lan`, then open http://raspberrypi.local:7070
+- **turn the display sideways:** menu → preferences → screen configuration → right-click the display → orientation. the radar fits whichever way it faces.
+- **something off?** `ssh you@raspberrypi.local journalctl -u radar-detection -f` shows what it's doing
+- tip: run `ssh-copy-id you@raspberrypi.local` once so it stops asking for your password
 
 ## how it's built
 
 ```
+src/detect.rs    rust   finds the sensors and tells them apart
 src/ld2450.rs    rust   reads the tracking radar
 src/ld2410.rs    rust   reads the presence radar
 src/tracker.rs   rust   turns both into people on a map
 src/sim.rs       rust   made-up people, for trying it without hardware
 src/server.rs    rust   serves the screen and streams the map to it, ten times a second
 web/             ts     the radar screen, drawn with three.js
+pi/setup.sh      bash   sets up the pi: starts at boot, opens full screen
+scripts/         bash   build for the pi and deploy to it from your mac
 ```
 
 the screen gets baked into the rust binary, so on the pi it's a single file.
