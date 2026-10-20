@@ -56,16 +56,21 @@ def flared_window(x, z, w, h, depth, flare):
     return Manifold.batch_hull([inner, outer])
 
 
-def board_seat(at, board, open_bottom=False):
-    """The pocket a board drops into from behind, and the window in front of it."""
+def board_seat(at, board, open_above=0.0, open_below=0.0):
+    """The pocket a board drops into from behind, and the window in front of it.
+
+    Plugs and pins that stick out past a board's edge need a channel there, or the
+    frame around the pocket stops the board sitting flat. The channels are narrower
+    than the board, so its corners still rest on a ledge."""
     x = WALL + at[0]
     z = WALL + at[1]
     w = board[0] + FIT
     h = board[1] + FIT
     pocket = box(x, FRONT, z, (w, BOARD_DEPTH + 0.01, h))
-    if open_bottom:
-        # the LD2410C's pins and plugs hang below the board
-        pocket += box(x + 1.5, FRONT, z - 30, (w - 3, BOARD_DEPTH + 0.01, 30))
+    if open_above:
+        pocket += box(x + 1.5, FRONT, z + h - 0.01, (w - 3, BOARD_DEPTH + 0.01, open_above))
+    if open_below:
+        pocket += box(x + 1.5, FRONT, z - open_below + 0.01, (w - 3, BOARD_DEPTH + 0.01, open_below))
     # the front face is thinner around the windows so the flare can be generous
     flare = FRONT * np.tan(np.radians(60))
     window = flared_window(x + RIM, z + RIM, w - 2 * RIM, h - 2 * RIM, FRONT, flare)
@@ -76,8 +81,10 @@ def body():
     shell = box(0, 0, 0, (OUTER_W, OUTER_D, OUTER_H))
     hollow = box(WALL, FRONT + BOARD_DEPTH, WALL, (INNER_W, INNER_D + 0.01, INNER_H))
     case = shell - hollow
-    case -= board_seat(LD2450_AT, LD2450)
-    case -= board_seat(LD2410C_AT, LD2410C, open_bottom=True)
+    # the LD2450's plug sticks out of its top edge, and its factory pins out of the bottom
+    case -= board_seat(LD2450_AT, LD2450, open_above=12, open_below=LD2450_AT[1])
+    # the LD2410C's pins and their plugs hang below it
+    case -= board_seat(LD2410C_AT, LD2410C, open_below=30)
     # the wires leave through a slot in the bottom, open toward the back
     slot_w, slot_h = 16.0, 8.0
     case -= box(OUTER_W / 2 - slot_w / 2, OUTER_D - slot_h, -0.01, (slot_w, slot_h + 0.01, WALL + 0.02))
