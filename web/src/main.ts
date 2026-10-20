@@ -13,7 +13,11 @@ if (params.has('kiosk')) document.body.classList.add('kiosk');
 
 const hud = new Hud();
 const radar = new Radar(document.querySelector('#stage')!, hud, { reduceMotion, lowFx });
-hud.onToggleView = () => hud.setView(radar.toggleView());
+hud.onViewChange = (view) => {
+  radar.setView(view);
+  hud.setView(view);
+};
+hud.setView('tilt');
 
 connect(
   (map) => {

@@ -1,3 +1,4 @@
+import type { View } from './radar';
 import type { RadarMap, Sensor } from './types';
 
 const $ = <T extends Element>(selector: string) => document.querySelector<T>(selector)!;
@@ -6,13 +7,15 @@ export type Tag = { key: string; x: number; y: number; html: string; color: stri
 
 /** everything drawn on top of the 3d scene: status, counts, sensors and floating tags. */
 export class Hud {
-  onToggleView = () => {};
+  onViewChange = (_view: View) => {};
 
   private readonly status = $<HTMLElement>('.status');
   private readonly count = $<HTMLElement>('.count .n');
   private readonly countLabel = $<HTMLElement>('.count .label');
   private readonly sensors = $<HTMLUListElement>('.sensors');
-  private readonly view = $<HTMLButtonElement>('.view');
+  private readonly views = $<HTMLElement>('.views');
+  private readonly viewThumb = $<HTMLElement>('.views-thumb');
+  private readonly viewButtons = [...document.querySelectorAll<HTMLButtonElement>('.views button')];
   private readonly signal = $<HTMLElement>('.signal');
   private readonly tagLayer = $<HTMLElement>('#tags');
   private readonly tags = new Map<string, HTMLElement>();
@@ -20,7 +23,19 @@ export class Hud {
   private sensorsHtml = '';
 
   constructor() {
-    this.view.addEventListener('click', () => this.onToggleView());
+    for (const button of this.viewButtons) {
+      button.addEventListener('click', () => this.onViewChange(button.dataset.view as View));
+    }
+    // arrow keys move between the options, like any radio group
+    this.views.addEventListener('keydown', (event) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      const current = this.viewButtons.findIndex((b) => b.getAttribute('aria-checked') === 'true');
+      const next = this.viewButtons[(current + step + this.viewButtons.length) % this.viewButtons.length];
+      next.focus();
+      this.onViewChange(next.dataset.view as View);
+    });
     this.setLink(false);
   }
 
@@ -36,8 +51,13 @@ export class Hud {
     this.linkTimer = window.setTimeout(() => (this.signal.hidden = false), 1500);
   }
 
-  setView(view: 'tilt' | 'top') {
-    this.view.textContent = view === 'tilt' ? '2d' : '3d';
+  setView(view: View) {
+    const index = this.viewButtons.findIndex((b) => b.dataset.view === view);
+    this.viewButtons.forEach((button, i) => {
+      button.setAttribute('aria-checked', String(i === index));
+      button.tabIndex = i === index ? 0 : -1;
+    });
+    this.viewThumb.style.transform = `translateX(${index * 100}%)`;
   }
 
   update(map: RadarMap) {

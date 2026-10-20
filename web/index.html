@@ -23,7 +23,12 @@
       </header>
       <footer class="bottom">
         <ul class="sensors"></ul>
-        <button class="view" type="button" aria-label="switch view">2d</button>
+        <div class="views" role="radiogroup" aria-label="view">
+          <span class="views-thumb" aria-hidden="true"></span>
+          <button type="button" role="radio" data-view="top" aria-checked="false" title="from above">map</button>
+          <button type="button" role="radio" data-view="tilt" aria-checked="true" title="3d overview">3d</button>
+          <button type="button" role="radio" data-view="pov" aria-checked="false" title="through the radar's eyes">pov</button>
+        </div>
       </footer>
     </main>
     <div class="signal" hidden>

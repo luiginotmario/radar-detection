@@ -10,7 +10,12 @@ import { People } from './people';
 import { colors, easeInOut, toWorld } from './theme';
 import type { RadarMap } from './types';
 
-type View = 'tilt' | 'top';
+export type View = 'top' | 'tilt' | 'pov';
+
+// the pov camera stands where the sensor is, at the height it's meant to be mounted
+const EYE_HEIGHT = 1.5;
+// and a little behind it, so someone right in front still fits in the picture
+const EYE_BACK = 0.8;
 type Options = { reduceMotion: boolean; lowFx: boolean };
 
 /** the 3d radar: floor, view cones, people, and the camera looking at them. */
@@ -28,7 +33,15 @@ export class Radar {
   private layout = '';
   private map: RadarMap | null = null;
   private view: View = 'tilt';
-  private flight: { from: THREE.Vector3; to: THREE.Vector3; fromTarget: THREE.Vector3; toTarget: THREE.Vector3; t: number } | null = null;
+  private flight: {
+    from: THREE.Vector3;
+    to: THREE.Vector3;
+    fromTarget: THREE.Vector3;
+    toTarget: THREE.Vector3;
+    fromFov: number;
+    toFov: number;
+    t: number;
+  } | null = null;
 
   constructor(
     host: HTMLElement,
@@ -85,10 +98,10 @@ export class Radar {
     }
   }
 
-  toggleView() {
-    this.view = this.view === 'tilt' ? 'top' : 'tilt';
+  setView(view: View) {
+    if (view === this.view) return;
+    this.view = view;
     this.fly();
-    return this.view;
   }
 
   private build(map: RadarMap) {
@@ -122,17 +135,23 @@ export class Radar {
    * where the camera should sit to frame everything in the current view: as close as it
    * can get while the whole area (and people standing at its edge) still fits on screen.
    */
-  private framing() {
+  private framing(): { position: THREE.Vector3; target: THREE.Vector3; fov: number } {
+    const tall = this.camera.aspect < 1;
+    if (this.view === 'pov') return this.eyeFraming();
+    // tall screens get a wider lens so the fan still fits
+    const fov = tall ? 50 : 40;
     const { center, outline } = this.area();
     const top = this.view === 'top';
     // tall screens look from higher up, so the fan stands taller and fills more of the height
-    const pitch = THREE.MathUtils.degToRad(top ? 89.9 : this.camera.aspect < 1 ? 64 : 50);
+    const pitch = THREE.MathUtils.degToRad(top ? 89.9 : tall ? 64 : 50);
     const direction = new THREE.Vector3(0, Math.sin(pitch), Math.cos(pitch));
     const points = top ? outline : outline.flatMap((p) => [p, p.clone().setY(1.8)]);
     // leave room for the hud at the top and bottom
     const room = { x: 0.92, y: 0.8 };
 
     const probe = this.camera.clone();
+    probe.fov = fov;
+    probe.updateProjectionMatrix();
     const target = center.clone();
     const place = (distance: number) => {
       probe.position.copy(target).addScaledVector(direction, distance);
@@ -160,22 +179,38 @@ export class Radar {
       distance = far;
       // nudge the target so the picture sits in the middle of the screen
       const mid = place(distance).getCenter(new THREE.Vector2());
-      const halfHeight = distance * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+      const halfHeight = distance * Math.tan(THREE.MathUtils.degToRad(fov / 2));
       target.z -= (mid.y * halfHeight) / Math.sin(pitch);
       target.x += mid.x * halfHeight * this.camera.aspect;
     }
-    return { position: target.clone().addScaledVector(direction, distance), target };
+    return { position: target.clone().addScaledVector(direction, distance), target, fov };
+  }
+
+  /** standing at the sensor, looking straight out, with a lens about as wide as it sees. */
+  private eyeFraming() {
+    const sensor = this.cones[0]?.sensor ?? { x: 0, y: 0, heading: 0 };
+    const heading = THREE.MathUtils.degToRad(sensor.heading);
+    const ahead = new THREE.Vector3(Math.sin(heading), 0, -Math.cos(heading));
+    const position = toWorld(sensor.x, sensor.y, EYE_HEIGHT).addScaledVector(ahead, -EYE_BACK);
+    // tilted down a touch, so the floor rings show how far away people are
+    const target = position.clone().addScaledVector(ahead, 6).setY(EYE_HEIGHT - 0.45);
+    // 100° across, as long as that doesn't make a tall screen absurdly tall
+    const across = THREE.MathUtils.degToRad(100);
+    const fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(across / 2) / this.camera.aspect));
+    return { position, target, fov: THREE.MathUtils.clamp(fov, 45, 80) };
   }
 
   private fly(instant = false) {
-    const { position, target } = this.framing();
+    const { position, target, fov } = this.framing();
     this.controls.minDistance = position.distanceTo(target) * 0.4;
     this.controls.maxDistance = position.distanceTo(target) * 1.8;
     if (instant || this.options.reduceMotion) {
       this.flight = null;
       this.camera.position.copy(position);
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
       this.controls.target.copy(target);
-      this.controls.update();
+      this.aim();
       return;
     }
     this.flight = {
@@ -183,8 +218,17 @@ export class Radar {
       to: position,
       fromTarget: this.controls.target.clone(),
       toTarget: target,
+      fromFov: this.camera.fov,
+      toFov: fov,
       t: 0,
     };
+  }
+
+  /** points the camera at its target. in pov you look, you don't orbit, so the orbit
+   * controls (which would also lift the camera off the floor) stay out of it. */
+  private aim() {
+    if (this.flight || this.view === 'pov') this.camera.lookAt(this.controls.target);
+    else this.controls.update();
   }
 
   private resize() {
@@ -193,8 +237,6 @@ export class Radar {
     if (!w || !h) return;
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
-    // tall screens get a wider lens so the fan still fits
-    this.camera.fov = w < h ? 50 : 40;
     this.camera.updateProjectionMatrix();
     this.composer?.setSize(w, h);
     if (this.map) this.fly(true);
@@ -211,10 +253,12 @@ export class Radar {
       const k = easeInOut(f.t);
       this.camera.position.lerpVectors(f.from, f.to, k);
       this.controls.target.lerpVectors(f.fromTarget, f.toTarget, k);
+      this.camera.fov = THREE.MathUtils.lerp(f.fromFov, f.toFov, k);
+      this.camera.updateProjectionMatrix();
       if (f.t >= 1) this.flight = null;
     }
-    this.controls.enabled = !this.flight;
-    this.controls.update();
+    this.controls.enabled = !this.flight && this.view !== 'pov';
+    this.aim();
 
     for (const cone of this.cones) cone.tick(time, !this.options.reduceMotion);
     for (const arc of this.arcs) arc.tick(dt, time);

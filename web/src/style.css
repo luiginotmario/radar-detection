@@ -9,6 +9,7 @@
   --off: #ff5d5d;
   --gutter: max(16px, env(safe-area-inset-left));
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-glide: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: dark;
 }
 
@@ -188,32 +189,72 @@ body {
   color: var(--off);
 }
 
-.view {
-  pointer-events: auto;
-  min-width: 52px;
-  min-height: 44px;
-  padding: 0 14px;
+/* map · 3d · pov. the highlight glides to the picked view */
+.views {
+  position: relative;
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  padding: 3px;
   border: 1px solid rgb(77 255 195 / 0.35);
   border-radius: 10px;
   background: rgb(3 6 8 / 0.6);
-  color: var(--ink);
+  pointer-events: auto;
+}
+
+.views-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  border-radius: 7px;
+  background: rgb(77 255 195 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(77 255 195 / 0.45);
+  transition: transform 260ms var(--ease-glide);
+}
+
+.views button {
+  position: relative;
+  min-width: 48px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--dim);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   cursor: pointer;
   transition:
-    transform 160ms var(--ease-out),
-    border-color 160ms ease;
+    color 160ms ease,
+    transform 160ms var(--ease-glide);
 }
 
-.view:active {
-  transform: scale(0.97);
+.views button[aria-checked='true'] {
+  color: var(--ink);
+}
+
+.views button:active {
+  transform: scale(0.96);
+}
+
+.views button:focus-visible {
+  outline: 1px solid var(--scan);
+  outline-offset: -1px;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .view:hover {
-    border-color: rgb(77 255 195 / 0.7);
+  .views button:hover {
+    color: var(--ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .views-thumb {
+    transition: none;
   }
 }
 
